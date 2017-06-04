@@ -12,37 +12,68 @@ import Parse
 
 class ViewController: UIViewController {
 
+    @IBOutlet weak var entryTextfield: UITextField!
+    @IBOutlet weak var errorLabel: UILabel!
+    
+    @IBAction func signupOrLogin(_ sender: Any) {
+        
+        if entryTextfield.text == ""{
+            
+            errorLabel.text = "User is required"
+        }
+        else{
+            
+            PFUser.logInWithUsername(inBackground: entryTextfield.text!, password: "password", block: { (user,error) in
+                
+                if error != nil{
+                    
+                    let user = PFUser()
+                    user.username = self.entryTextfield.text
+                    user.password = "password"
+                    
+                    user.signUpInBackground(block: { (sucess,error) in
+                        
+                        if let error = error as NSError?{
+                            
+                            var errorMessage = "Sign up Failed"
+                            
+                            if let errorString = error.userInfo["error"] as? String{
+                                errorMessage = errorString
+                            }
+                            
+                            self.errorLabel.text = errorMessage
+                        }
+                        else{
+                            
+                            self.performSegue(withIdentifier: "showUserTable", sender: self)
+                            
+                        }
+                    })
+                    
+                }else{
+                    
+                    print("Logged in")
+                    self.performSegue(withIdentifier: "showUserTable", sender: self)
+                }
+                
+            })
+            
+        }
+    }
     override func viewDidLoad() {
         super.viewDidLoad()
         // Do any additional setup after loading the view, typically from a nib.
         
-        let testObject = PFObject(className: "TestObject2")
         
-        testObject["foo"] = "bar"
         
-        testObject.saveInBackground { (success, error) -> Void in
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        
+        if PFUser.current() != nil{
             
-            // added test for success 11th July 2016
-            
-            if success {
-                
-                print("Object has been saved.")
-                
-            } else {
-                
-                if error != nil {
-                    
-                    print (error)
-                    
-                } else {
-                    
-                    print ("Error")
-                }
-                
-            }
-            
+             performSegue(withIdentifier: "showUserTable", sender: self)
         }
-        
     }
 
     override func didReceiveMemoryWarning() {
