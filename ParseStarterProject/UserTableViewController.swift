@@ -15,11 +15,13 @@ class UserTableViewController: UITableViewController,UIImagePickerControllerDele
     private var users = [String]()
     //private var currentImage: UIImage
     private var recipientUser = ""
+    private var timer = Timer()
     
     private func createAlert(title: String, message: String){
         
         let alert = UIAlertController(title: title, message: message, preferredStyle: UIAlertControllerStyle.alert)
         
+ 
         alert.addAction(UIAlertAction(title: "Ok", style: .default, handler: { (action) in
             
             self.dismiss(animated: true, completion: nil)
@@ -30,12 +32,202 @@ class UserTableViewController: UITableViewController,UIImagePickerControllerDele
         
     }
     
+    func checkforMessages(){
+        
+        
+        let query = PFQuery(className: "Image")
+        
+        query.whereKey("recipient", equalTo: (PFUser.current()?.username) as Any)
+        
+        do {
+            
+            let images = try query.findObjects()
+            
+            if images.count > 0 {
+                
+                var senderUsername = "Unknown User"
+                
+                if let username = images[0]["sender"] as? String {
+                    
+                    senderUsername = username
+                    
+                }
+                
+                if let pfFile = images[0]["imageFile"] as? PFFile {
+                    
+                    pfFile.getDataInBackground(block: { (data, error) in
+                        
+                        if let imageData = data {
+                            
+                            images[0].deleteInBackground()
+                            
+                            self.timer.invalidate()
+                            
+                            if let imageToDisplay = UIImage(data: imageData) {
+                                
+                                let alertController = UIAlertController(title: "You have a message", message: "Message from " + senderUsername, preferredStyle: .alert)
+                                
+                                alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: { (action) in
+                                    
+                                    let backgroundImageView = UIImageView(frame: CGRect(x: 0, y: 0, width: self.view.frame.width, height: self.view.frame.height))
+                                    
+                                    backgroundImageView.backgroundColor = UIColor.black // UIColor.black() is now UIColor.black
+                                    
+                                    backgroundImageView.alpha = 0.8
+                                    
+                                    backgroundImageView.tag = 10
+                                    
+                                    self.view.addSubview(backgroundImageView)
+                                    
+                                    
+                                    let displayedImageView = UIImageView(frame: CGRect(x: 0, y: 0, width: self.view.frame.width, height: self.view.frame.height))
+                                    
+                                    displayedImageView.image = imageToDisplay
+                                    
+                                    displayedImageView.tag = 10
+                                    
+                                    displayedImageView.contentMode = UIViewContentMode.scaleAspectFit
+                                    
+                                    self.view.addSubview(displayedImageView)
+                                    
+                                    _ = Timer.scheduledTimer(withTimeInterval: 5, repeats: false, block: { (timer) in
+                                        
+                                        self.timer = Timer.scheduledTimer(timeInterval: 5, target: self, selector: #selector(UserTableViewController.checkforMessages), userInfo: nil, repeats: true)
+                                        
+                                        for subview in self.view.subviews {
+                                            
+                                            if subview.tag == 10 {
+                                                
+                                                subview.removeFromSuperview()
+                                                
+                                            }
+                                            
+                                        }
+                                        
+                                    })
+                                    
+                                    
+                                }))
+                                
+                                self.present(alertController, animated: true, completion: nil)
+                                
+                            }
+                            
+                            
+                        }
+                        
+                        
+                    })
+                    
+                    
+                    
+                    
+                    
+                }
+                
+            }
+            
+        } catch {
+            
+            print("Could not get images")
+            
+        }
+
+        /*let query = PFQuery(className: "Image")
+        
+        query.whereKey("recipient", equalTo: (PFUser.current()?.username) as Any)
+        
+        do{
+         
+            let images = try query.findObjects()
+         
+            if images.count > 0{
+         
+         
+                    
+                    var senderUser = "Unknown User"
+                    
+                    if let user = images[0]["sender"] as? String{
+                        
+                        senderUser = user
+                    }
+                    
+                    if let pffile = images[0]["imageFile"] as? PFFile{
+                        
+                        
+                        pffile.getDataInBackground(block: { (data, error) in
+                            
+                            if let imagedata = data{
+                                
+                                images[0].deleteInBackground()
+                                self.timer.invalidate()
+                                
+                                if let imageTodisplay = UIImage(data: imagedata){
+                                    
+                                    let alertcontroller = UIAlertController(title: "You have a message", message: "Message from" + senderUser, preferredStyle: UIAlertControllerStyle.alert)
+                                    alertcontroller.addAction(UIAlertAction(title: "OK", style: .default, handler: {
+                                        
+                                        (action) in
+                                        
+                                        let backgroundImageView = UIImageView(frame: CGRect(x: 0, y: 0, width: self.view.frame.width, height: self.view.frame.height))
+                                        backgroundImageView.backgroundColor = UIColor.black
+                                        backgroundImageView.alpha = 0.8
+                                        backgroundImageView.tag = 10
+                                        self.view.addSubview(backgroundImageView)
+                                        let displayedImageView = UIImageView(frame: CGRect(x: 0, y: 0, width: self.view.frame.width, height: self.view.frame.height))
+                                        
+                                        displayedImageView.image = imageTodisplay
+                                        displayedImageView.tag = 10
+                                        displayedImageView.contentMode = UIViewContentMode.scaleAspectFit
+                                        self.view.addSubview(displayedImageView)
+                                        
+                                        _ = Timer(timeInterval: 5, repeats: false, block: {
+                                            
+                                            (timer) in
+                                            
+                                            print("entered this scope")
+                                            
+                                            self.timer = Timer.scheduledTimer(timeInterval: 5, target: self, selector: #selector(UserTableViewController.checkforMessages), userInfo: nil, repeats: true)
+                                            
+                                            for subview in self.view.subviews{
+                                                
+                                                if subview.tag == 10{
+                                                    
+                                                    subview.removeFromSuperview()
+                                                    
+                                                }
+                                                
+                                            }
+                                            
+                                        })
+                                        
+                                    }))
+                                    
+                                    self.present(alertcontroller, animated: true, completion: nil)
+                                }
+                            }
+                        })
+                    
+                    
+                    
+             }
+        }
+        }catch{
+            
+            print("Unable to find image")
+            
+        }*/
+        
+    }
     
     
     override func viewDidLoad() {
         super.viewDidLoad()
 
         self.navigationController?.navigationBar.isHidden = false
+        
+         timer = Timer.scheduledTimer(timeInterval: 5, target: self, selector: #selector(UserTableViewController.checkforMessages), userInfo: nil, repeats: true)
+        
         
         let query = PFUser.query()
         
@@ -125,7 +317,7 @@ class UserTableViewController: UITableViewController,UIImagePickerControllerDele
             imageSent["sender"] = PFUser.current()?.username
             imageSent["recipient"] = recipientUser
             
-            let PNGimage = UIImagePNGRepresentation(image, 0.8)
+            let PNGimage = UIImagePNGRepresentation(image)
             let imageFile = PFFile(name: "image.png", data: PNGimage!)
             imageSent["imageFile"] = imageFile
             
